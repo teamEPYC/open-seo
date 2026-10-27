@@ -58,6 +58,58 @@ pnpm deploy:selfhost --yes
 
 This provisions the D1 database, KV namespaces, and R2 bucket, applies the database migrations, deploys the Workers, and generates the session secret. The secret is kept in Alchemy's state in your account, so later deploys keep everyone signed in.
 
+### EPYC production deployment
+
+The EPYC deployment uses the `selfhost` stage in the **EPYC Production**
+Cloudflare account. Its source is `teamEPYC/open-seo`, branch
+`deploy/epyc-production`.
+
+Recreate the ignored `.env.selfhost` with:
+
+```dotenv
+CLOUDFLARE_ACCOUNT_ID=cbf6ee8739c8b48c351774cd83f1f413
+AUTH_MODE=cloudflare_access
+ACCESS_ALLOWED_EMAILS=keshav@epyc.in
+SELFHOST_DOMAIN=openseo.epyc.in
+DATAFORSEO_API_KEY=
+OPENSEO_TELEMETRY_DISABLED=1
+```
+
+`SELFHOST_DOMAIN` connects the custom hostname and protects it with the
+provisioned Access policy. This deployment disables both the workers.dev
+endpoint and preview URLs. Use this custom-domain configuration with
+`AUTH_MODE=cloudflare_access`.
+
+DataForSEO configuration was deliberately deferred by the operator. Until its
+key is supplied, provider-backed SEO features are unavailable. The initial
+deployment used the following commands instead of the wrapper's required-key
+preflight; no placeholder credentials were supplied:
+
+```bash
+pnpm build:report-widgets
+pnpm exec vite build --mode selfhost
+pnpm exec tsc --noEmit
+pnpm alchemy deploy deploy/alchemy/alchemy.run.ts --env-file .env.selfhost --stage selfhost --yes
+```
+
+Authenticate Alchemy to the EPYC account before redeploying. For noninteractive
+deployments, provide `CI=1`, `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_API_TOKEN`
+through the process environment, never in committed files. The initial deploy
+used the existing `cf` CLI OAuth session without modifying Wrangler's separate
+HRTC login.
+
+After adding the real DataForSEO key to `.env.selfhost`, use the standard
+`pnpm deploy:selfhost --yes` command. Alchemy keeps deployment state in the
+account's `alchemy-state-store` Worker. D1 migrations, R2, KV, the audit Worker,
+and background workflows are provisioned by the same stack.
+
+Verification: the native build and TypeScript check passed; the custom HTTPS
+hostname rendered Cloudflare Access; the allow policy contained only
+`keshav@epyc.in`; workers.dev and preview URLs were disabled; the remote D1
+database contained the migrated application tables. An authenticated dashboard
+session and provider-backed SEO requests still require operator verification.
+
+
 ## 5) Create your account
 
 1. Open the Worker URL printed at the end of the deploy.
