@@ -12,6 +12,7 @@ import {
   getRequiredEnvValue,
   getWorkersEnv,
 } from "@/server/lib/runtime-env";
+import { createTregFetch } from "@/server/lib/dataforseo/treg";
 
 // How OpenSEO reaches the APIs it calls with a key (DataForSEO, Context.dev).
 // Every mode but one holds the keys itself. Behind an Every App gateway
@@ -74,6 +75,8 @@ export async function getDataforseoFetch(): Promise<typeof fetch> {
     }
     return providerFetch;
   }
+  const tregToken = await getOptionalEnvValue("TREG_TOKEN");
+  if (tregToken) return createTregFetch(tregToken);
   const apiKey = await getRequiredEnvValue("DATAFORSEO_API_KEY");
   return withAuthorization(`Basic ${apiKey}`);
 }
@@ -103,6 +106,9 @@ export async function hasProviderAccess(
       provider,
     });
     return status.ready;
+  }
+  if (provider === "dataforseo" && (await getOptionalEnvValue("TREG_TOKEN"))) {
+    return true;
   }
   return Boolean(await getOptionalEnvValue(KEY_ENV[provider]));
 }

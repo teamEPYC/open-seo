@@ -102,11 +102,17 @@ function createAuthenticatedFetch(
     // rather than restarting a fresh 60s budget on each attempt.
     const signal =
       init?.signal ?? AbortSignal.timeout(DATAFORSEO_REQUEST_TIMEOUT_MS);
+    // Treg replays a completed request without billing it again. Keep the key
+    // stable across this request's retries, but never reuse it for new work.
+    const headers = new Headers(init?.headers);
+    if (!headers.has("Idempotency-Key")) {
+      headers.set("Idempotency-Key", crypto.randomUUID());
+    }
 
     for (let attempt = 0; ; attempt++) {
       let response: Response;
       try {
-        response = await providerFetch(url, { ...init, signal });
+        response = await providerFetch(url, { ...init, headers, signal });
       } catch (error) {
         // Both abort flavours mean "we ran out of time", and neither carries a
         // useful name of its own: the shared budget above rejects with

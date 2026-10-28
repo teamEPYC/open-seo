@@ -95,6 +95,8 @@ declare namespace Cloudflare {
     TURNSTILE_SECRET_KEY?: string;
     TURNSTILE_SITE_KEY?: string;
 
+    // Server-side Treg token; takes precedence over direct DataForSEO credentials.
+    TREG_TOKEN?: string;
     // DataForSEO API Basic auth value (base64 of login:password)
     DATAFORSEO_API_KEY: string;
     LOCAL_RANK_WORKFLOW: Workflow<

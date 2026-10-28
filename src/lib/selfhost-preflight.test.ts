@@ -20,6 +20,22 @@ describe("runSelfhostPreflight", () => {
     expect(itemFor(result, "DATAFORSEO_API_KEY")?.level).toBe("ok");
   });
 
+  it("accepts Treg without direct credentials and keeps invalid auth blocked", () => {
+    const configured = runSelfhostPreflight({
+      AUTH_MODE: "local_noauth",
+      TREG_TOKEN: "team-token",
+    });
+    expect(configured.failed).toBe(false);
+    expect(itemFor(configured, "TREG_TOKEN")?.level).toBe("ok");
+
+    const unsecured = runSelfhostPreflight({
+      AUTH_MODE: "cloudflare_access",
+      TREG_TOKEN: "team-token",
+    });
+    expect(unsecured.failed).toBe(true);
+    expect(itemFor(unsecured, "TREG_TOKEN")?.level).toBe("ok");
+  });
+
   it("fails an invalid AUTH_MODE with the valid list", () => {
     const result = runSelfhostPreflight({ AUTH_MODE: "local-noauth" });
 

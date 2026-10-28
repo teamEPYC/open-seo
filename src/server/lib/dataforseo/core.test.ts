@@ -24,6 +24,19 @@ describe("DataForSEO transport", () => {
       dataforseoPost("/v3/backlinks/summary/live", []),
     ).resolves.toEqual({ status_code: 20000, tasks: [] });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    const retryKeys = fetchMock.mock.calls.map(([, init]) =>
+      new Headers(init?.headers).get("Idempotency-Key"),
+    );
+    expect(retryKeys[0]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(retryKeys[1]).toBe(retryKeys[0]);
+
+    fetchMock.mockResolvedValueOnce(
+      Response.json({ status_code: 20000, tasks: [] }),
+    );
+    await dataforseoPost("/v3/backlinks/summary/live", []);
+    expect(
+      new Headers(fetchMock.mock.calls[2][1]?.headers).get("Idempotency-Key"),
+    ).not.toBe(retryKeys[0]);
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("https://api.dataforseo.com/v3/backlinks/summary/live");

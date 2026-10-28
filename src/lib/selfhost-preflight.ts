@@ -177,6 +177,15 @@ function checkDataForSeo(env: EnvRecord, items: PreflightItem[]): void {
     });
     return;
   }
+  if (get(env, "TREG_TOKEN")) {
+    items.push({
+      key: "dataforseo",
+      name: "TREG_TOKEN",
+      level: "ok",
+      message: "Configured through Treg",
+    });
+    return;
+  }
   const key = get(env, "DATAFORSEO_API_KEY");
 
   if (!key) {
@@ -185,7 +194,7 @@ function checkDataForSeo(env: EnvRecord, items: PreflightItem[]): void {
       name: "DATAFORSEO_API_KEY",
       level: "warn",
       message:
-        "Not set — all SEO data features will be unavailable until it is. It is the base64 of your DataForSEO login:password (NOT the dashboard API key). See docs/DATAFORSEO_API_KEY.md.",
+        "Not set. Configure TREG_TOKEN for Treg, or DATAFORSEO_API_KEY as base64 of your DataForSEO login:password. See docs/SELF_HOSTING_CLOUDFLARE.md.",
     });
     return;
   }

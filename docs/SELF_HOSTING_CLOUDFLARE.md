@@ -71,7 +71,7 @@ CLOUDFLARE_ACCOUNT_ID=cbf6ee8739c8b48c351774cd83f1f413
 AUTH_MODE=cloudflare_access
 ACCESS_ALLOWED_EMAILS=keshav@epyc.in
 SELFHOST_DOMAIN=openseo.epyc.in
-DATAFORSEO_API_KEY=
+TREG_TOKEN=
 OPENSEO_TELEMETRY_DISABLED=1
 ```
 
@@ -80,10 +80,29 @@ provisioned Access policy. This deployment disables both the workers.dev
 endpoint and preview URLs. Use this custom-domain configuration with
 `AUTH_MODE=cloudflare_access`.
 
-DataForSEO configuration was deliberately deferred by the operator. Until its
-key is supplied, provider-backed SEO features are unavailable. The initial
-deployment used the following commands instead of the wrapper's required-key
-preflight; no placeholder credentials were supplied:
+The initial deployment left DataForSEO credentials unset. A Treg adapter is
+being prepared on this branch but is not deployed pending an operator decision
+about incomplete catalog coverage. Store an org-scoped Treg token in the ignored
+`.env.selfhost`; never commit it. When configured, Treg takes precedence over
+direct DataForSEO credentials and never falls back to them on a failed request.
+
+Treg's platform-key catalog covers keyword research, domain research, backlinks,
+live SERPs, live AI answers, and selected business endpoints. It does not cover
+the app's asynchronous rank, local-grid, or ChatGPT/Gemini tracking endpoints,
+four existing LLM-mentions endpoints, business categories, or model discovery.
+Lighthouse is cataloged but requires a team-owned DataForSEO key in Treg. The
+adapter refuses unmapped requests instead of silently substituting a different
+contract or provider. Production rollout needs an explicit choice about these
+limits. Direct DataForSEO credentials and Every App modes remain supported for
+other deployments.
+
+Treg requests use catalog IDs, not the raw URL proxy (which requires a
+registered team-owned tool). The production token is pinned to `app=openseo`,
+has local execution disabled, and belongs to the EPYC `epyc-2` team. Call IDs
+and cost headers are written to structured Worker logs. Treg's private billing
+error bodies are not exposed. One idempotency key covers each HTTP retry group.
+
+The initial deployment used these commands before provider credentials existed:
 
 ```bash
 pnpm build:report-widgets
@@ -98,7 +117,7 @@ through the process environment, never in committed files. The initial deploy
 used the existing `cf` CLI OAuth session without modifying Wrangler's separate
 HRTC login.
 
-After adding the real DataForSEO key to `.env.selfhost`, use the standard
+After configuring a supported provider, use the standard
 `pnpm deploy:selfhost --yes` command. Alchemy keeps deployment state in the
 account's `alchemy-state-store` Worker. D1 migrations, R2, KV, the audit Worker,
 and background workflows are provisioned by the same stack.
